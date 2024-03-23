@@ -1,0 +1,42 @@
+1. unicast sockets 
+
+2. one common code for both parts 
+
+3. A client joins by connecting to a dedicated server (a standalone process)
+and is prompted to enter a non-existent user name in that group.
+
+4. server listens on a specific non-system port endlessly
+
+5. server keeps track of all users that join or leave the group
+
+6. When a user joins or leaves the group, all other connected clients get notified by the server
+
+7. When a user (or client)
+joins the group, he/she can only see the last 2 messages that were posted on the board by other clients who joined
+earlier.
+
+8. A list of users belonging to the group is displayed once a new user joins (in this part, the list represents all
+users/clients that have joined earlier).
+
+9. When a user posts a new message, other users in the same group should see
+the posted message
+
+10.  Messages are displayed in the following format: “Message ID, Sender, Post Date, Subject
+
+11. User can retrieve the content of a message by contacting the server and providing the message ID as a parameter
+
+12. Your client program should also provide the option to leave the group.
+
+13. Once a user leaves the group, the server
+notifies all other users in the same group of this event.
+
+14. Once a user is connected to the server, the server
+provides a list of 5 groups
+
+15. The user can then select the desired group by id or by name
+
+16. A user can join multiple
+groups at the same time.
+
+17. User in one group cannot see users in other groups as well as the messages
+they have posted to their private board in other groups.
