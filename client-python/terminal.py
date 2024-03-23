@@ -1,3 +1,8 @@
+# Below is quick and dirty
+# We really should implement some real form of terminal
+# And possibly GUI (@crazykrai)
+
+
 def connect(args):
     if len(args) != 2:
         print("Error: Insufficient arguments for %connect command. Usage: %connect <address> <port>")
@@ -64,12 +69,3 @@ def parse_command(command):
 def exit_client():
     print("Exiting the client program")
     exit()
-
-command_num = 0
-while True:
-    command = input(f"mux-{command_num}:")
-    if command and command[0] == '%':
-        parse_command(command)
-    else:
-        pass
-    command_num += 1
