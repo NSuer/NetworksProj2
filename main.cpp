@@ -21,8 +21,6 @@ int message_count = 0;
 // current_usernames is an array of strings that will store the usernames of the clients that are currently connected to the server
 string current_usernames[64];
 
-
-
 using namespace std;
 
 int main() {
@@ -88,81 +86,68 @@ int handle_client(int client_socket) {\
 
     char buffer[4096]; // buffer to store the message
     memset(buffer, 0, 4096); // clear the buffer
-    int bytes_recieved = recv(client_socket, buffer, 4096, 0); // receive the message from the client
+    while (client_socket) {
+        int bytes_recieved = recv(client_socket, buffer, 4096, 0); // receive the message from the client
 
-    // Check if the message was received successfully
-    if (bytes_recieved == -1) {
-        cout << "Error in recv()" << endl;
-        return 1;
-    }
-    // Check if the client has disconnected
-    if (bytes_recieved == 0) {
-        cout << "Client disconnected" << endl;
-        return 1;
-    }
-
-    // Message will be in following order 
-    // Action
-    // Group
-    // Message ID
-    // Sender
-    // Post Date
-    // Subject
-    // Message
-
-    // parse message by { and } and store in array
-    string message = string(buffer, 0, bytes_recieved); // convert the buffer to a string
-    vector<string> parsedMessage; // vector to store the parsed message
-    size_t start = message.find('{'); // find the first '{' in the message
-    size_t end; // variable to store the position of the '}'
-    while (start != string::npos) { // while there are still '{'s in the message
-        end = message.find('}', start); // find the next '}'
-        if (end == string::npos) { // if there is no '}' after the '{'
-            cout << "Invalid message format" << endl; // print an error message
+        // Check if the message was received successfully
+        if (bytes_recieved == -1) {
+            cout << "Error in recv()" << endl;
             return 1;
         }
-        string substring = message.substr(start + 1, end - start - 1); // extract the substring between the '{' and '}'
-        parsedMessage.push_back(substring); // add the substring to the vector
-        start = message.find('{', end); // find the next '{'
-    }
-
-    // Switch case on the action
-    action = parsedMessage[0];
-    group = parsedMessage[1];
-    message_id = parsedMessage[2];
-    sender = parsedMessage[3];
-    post_date = parsedMessage[4];
-    subject = parsedMessage[5];
-    message = parsedMessage[6];
-
-    switch (action) {
-        case "POST":
-            // Check if the group exists
-            // Check if the message ID is unique
-            // Save the message
-            break;
-        case "REPLY":
-            // Check if the group exists
-            // Check if the message ID exists
-            // Check if the message ID is unique
-            // Save the message
-            break;
-        case "READ":
-            // Check if the group exists
-            // Check if the message ID exists
-            // Send the message to the client
-            break;
-        case "LIST":
-            // Check if the group exists
-            // Send the list of messages to the client
-            break;
-        case "QUIT":
-            // Close the connection
-            break;
-        default:
-            cout << "Invalid action" << endl;
+        // Check if the client has disconnected
+        if (bytes_recieved == 0) {
+            cout << "Client disconnected" << endl;
             return 1;
-    }
+        }
 
+        // Message will be in following order 
+        // Action
+        // Group
+        // Message ID
+        // Sender
+        // Post Date
+        // Subject
+        // Message
+
+        // parse message by { and } and store in array
+        string message = string(buffer, 0, bytes_recieved); // convert the buffer to a string
+        vector<string> parsedMessage; // vector to store the parsed message
+        size_t start = message.find('{'); // find the first '{' in the message
+        size_t end; // variable to store the position of the '}'
+        while (start != string::npos) { // while there are still '{'s in the message
+            end = message.find('}', start); // find the next '}'
+            if (end == string::npos) { // if there is no '}' after the '{'
+                cout << "Invalid message format" << endl; // print an error message
+                return 1;
+            }
+            string substring = message.substr(start + 1, end - start - 1); // extract the substring between the '{' and '}'
+            parsedMessage.push_back(substring); // add the substring to the vector
+            start = message.find('{', end); // find the next '{'
+        }
+
+        // Switch case on the action
+        action = parsedMessage[0];
+        group = parsedMessage[1];
+        message_id = parsedMessage[2];
+        sender = parsedMessage[3];
+        post_date = parsedMessage[4];
+        subject = parsedMessage[5];
+        message = parsedMessage[6];
+
+        switch (action) {
+            case "POST": // Post a message to the group
+
+                break;
+            case "CREATE_USER": // Create a new user
+
+                break;
+            case "GET": // Get a message from the group
+
+                break;
+            default:
+                cout << "Invalid action" << endl;
+                return 1;
+        }
+    }
     return 0;
 }
