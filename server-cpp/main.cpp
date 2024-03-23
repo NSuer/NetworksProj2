@@ -5,6 +5,8 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <thread>
+#include <vector>
+#include <stack>
 
 // max_clients is the maximum number of clients that can connect to the server
 int max_clients = 64;
@@ -20,6 +22,14 @@ string SavedMessages[5][2];
 int message_count = 0;
 // current_usernames is an array of strings that will store the usernames of the clients that are currently connected to the server
 string current_usernames[64];
+
+// user lists for each group
+string group_users[64][5];
+
+// group messages
+stack <string> group_messages[5];
+
+
 
 using namespace std;
 
@@ -77,12 +87,13 @@ int main() {
 
 int handle_client(int client_socket) {\
     string action;
-    string group;
+    string groupStr;
     string message_id;
     string sender;
     string post_date;
     string subject;
     string message;
+    int group;
 
     char buffer[4096]; // buffer to store the message
     memset(buffer, 0, 4096); // clear the buffer
@@ -108,40 +119,163 @@ int handle_client(int client_socket) {\
         // Post Date
         // Subject
         // Message
+        // Example message: {POST}{0}{1}{user1}{2021-10-01 12:00:00}{Subject}{Message}
 
         // parse message by { and } and store in array
-        string message = string(buffer, 0, bytes_recieved); // convert the buffer to a string
+        string recieved_full = string(buffer, 0, bytes_recieved); // convert the buffer to a string
         vector<string> parsedMessage; // vector to store the parsed message
-        size_t start = message.find('{'); // find the first '{' in the message
+        size_t start = recieved_full.find('{'); // find the first '{' in the message
         size_t end; // variable to store the position of the '}'
         while (start != string::npos) { // while there are still '{'s in the message
-            end = message.find('}', start); // find the next '}'
+            end = recieved_full.find('}', start); // find the next '}'
             if (end == string::npos) { // if there is no '}' after the '{'
                 cout << "Invalid message format" << endl; // print an error message
                 return 1;
             }
-            string substring = message.substr(start + 1, end - start - 1); // extract the substring between the '{' and '}'
+            string substring = recieved_full.substr(start + 1, end - start - 1); // extract the substring between the '{' and '}'
             parsedMessage.push_back(substring); // add the substring to the vector
-            start = message.find('{', end); // find the next '{'
+            start = recieved_full.find('{', end); // find the next '{'
         }
 
         // Switch case on the action
         action = parsedMessage[0];
-        group = parsedMessage[1];
+        groupStr = parsedMessage[1];
         message_id = parsedMessage[2];
         sender = parsedMessage[3];
         post_date = parsedMessage[4];
         subject = parsedMessage[5];
         message = parsedMessage[6];
+        group = stoi(groupStr);
 
         switch (action) {
             case "POST": // Post a message to the group
+                // Check if the user is in the group
+                for (int i = 0; i < 64; i++) {
+                    if (current_usernames[i] == sender) {
+                        break;
+                    }
+                    if (i == 63) {
+                        // TODO make a way to send the message to the client
+                        cout << "User is not in the group" << endl;
+                        return 1;
+                    }
+                }
+                // post the message to the group
+                // make sure group is valid 
+                if (group < 0 || group > 4) {
+                    // TODO make a way to send the message to the client
+                    cout << "Invalid group" << endl;
+                    return 1;
+                }
+                // convert group to int 
+                
+                group_messages[group].push(recieved_full);
+                break;
+            case "GET": // Get a message from the group
+                // Check if the user is in the group
+                for (int i = 0; i < 64; i++) {
+                    if (current_usernames[i] == sender) {
+                        break;
+                    }
+                    if (i == 63) {
+                        // TODO make a way to send the message to the client
+                        cout << "User is not in the group" << endl;
+                        return 1;
+                    }
+                }
+                // get the message from the group based on if the message was posted after the post date
+                // make sure group is valid
+                if (group < 0 || group > 4) {
+                    // TODO make a way to send the message to the client
+                    cout << "Invalid group" << endl;
+                    return 1;
+                }
+                // get messages from group based on post date
+                stack <string> tempStack = group_messages[group];
+                stack <string> sendStack;
+                while (!tempStack.empty()) {
+                    string tempMessage = tempStack.top();
+                    vector<string> tempParsedMessage;
+                    size_t tempStart = tempMessage.find('{');
+                    size_t tempEnd;
+                    while (tempStart != string::npos) {
+                        tempEnd = tempMessage.find('}', tempStart);
+                        if (tempEnd == string::npos) {
+                            // TODO make a way to send the message to the client
+                            cout << "Invalid message format" << endl;
+                            return 1;
+                        }
+                        string tempSubstring = tempMessage.substr(tempStart + 1, tempEnd - tempStart - 1);
+                        tempParsedMessage.push_back(tempSubstring);
+                        tempStart = tempMessage.find('{', tempEnd);
+                    }
+                    // TODO This won't work because the post_date is a string
+                    if (tempParsedMessage[4] > post_date) {
+                        sendStack.push(tempMessage);
+                    }
+                    tempStack.pop();
+                }
+                
+                // send the message to the client
+                while (!sendStack.empty()) {
+                    string tempMessage = sendStack.top();
+                    send(client_socket, tempMessage.c_str(), tempMessage.size() + 1, 0);
+                    sendStack.pop();
+                }
 
                 break;
             case "CREATE_USER": // Create a new user
+                bool username_available;
+                // Check if the user already exists
+                for (int i = 0; i < 64; i++) {
+                    if (current_usernames[i] == sender) {
+                        username_available = false;
+                    } else {
+                        username_available = true;
+                    }
+                }
 
+                // Create the new user if the username is available
+                if (username_available) {
+                    for (int i = 0; i < 64; i++) {
+                        if (current_usernames[i] == "") {
+                            current_usernames[i] = sender;
+                            break;
+                        }
+                    }
+                    // send a message to the client that the user was created
+                    string user_created = "User created";
+                    // TODO make a way to send the message to the client
+                } else {
+                    string user_not_created = "User not created";
+                    // TODO make a way to send the message to the client
+                }
                 break;
-            case "GET": // Get a message from the group
+            case "JOIN_GROUP": // Create a new user
+                // Check if the user is already in the group
+                for (int i = 0; i < 64; i++) {
+                    if (group_users[i][group] == sender) {
+                        cout << "User is already in the group" << endl;
+                        bool user_in_group = true;
+                        
+                    }
+                }
+                if (user_in_group) {
+                    // send a message to the client that the user is already in the group
+                    string user_in_group_message = "User is already in the group";
+                    // TODO make a way to send the message to the client
+                } else {
+                    // add the user to the group
+                    for (int i = 0; i < 64; i++) {
+                        if (group_users[i][group] == "") {
+                            group_users[i][group] = sender;
+                            break;
+                        }
+                    }
+                    // send a message to the client that the user was added to the group
+                    string user_added_to_group = "User added to group";
+                    // TODO make a way to send the message to the client
+                }
 
                 break;
             default:
